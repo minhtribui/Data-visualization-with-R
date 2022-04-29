@@ -1,0 +1,146 @@
+---
+title: "Week 3 Peer Review"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+
+######DO NOT MODIFY. This will load required packages and data.
+
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+cces <- drop_na(read_csv(url("https://www.dropbox.com/s/ahmt12y39unicd2/cces_sample_coursera.csv?raw=1")))
+
+cel <- drop_na(read_csv(url("https://www.dropbox.com/s/4ebgnkdhhxo5rac/cel_volden_wiseman%20_coursera.csv?raw=1")))
+
+```
+
+Following the directions on the Coursera assignment page, you will make four original visualizations. Note that the data for the CCES and CEL data are imported in code in the R Markdown file.
+
+### Put your name here: Minh Tri Bui
+
+## Exercise 1
+
+Explain what you are visualizing here: A bar chart showing the number of respondents education in the cces file
+
+Put your figure here:
+
+```{r exercise1,echo=FALSE}
+data1 <-cces
+data1 <- data1 %>% 
+  mutate(
+    Gender = case_when(
+      gender == 1 ~ "Male",
+      gender == 2 ~ "Female"))
+
+data1 <- data1 %>% 
+  mutate(
+    Educ = case_when(
+      educ == 1 ~ "No high school",
+      educ == 2 ~ "High school graduate",
+      educ == 3 ~ "Some college",
+      educ == 4 ~ "2-year",
+      educ == 5 ~ "4-year",
+      educ == 6 ~ "Post-grad"))
+data1$Educ = factor(data1$Educ, levels = c ("No high school", "High school graduate", "Some college", "2-year", "4-year", "Post-grad"))
+
+data1.1 <- data1 %>% count(Gender, Educ, sort = TRUE)
+ggplot(data1.1, aes( y = n, x= Gender, fill = Gender, label = n)) + 
+  stat_summary(geom = "bar", position = "dodge") + # Cannot use geom_bar
+  labs( x = "Gender", y= "Number of respondents", title = "The education levels of respondents") +
+  theme(plot.title = element_text(hjust = 0.5)) + # Adjust the title to the center
+  geom_text(position = position_dodge(width = .9), vjust = - 0.5, size = 3) + # Adjust the label to the center of each bar, vjust: adjust the height position of label  
+  facet_wrap(~Educ) +
+  theme(legend.position='none') +
+  lims(y = c(0,150))
+
+```
+```{r exercise1.2,echo=FALSE}
+ggplot(data1.1, aes( y = n, , x = Educ, fill = Educ, label = n)) + 
+  stat_summary(geom = "bar", position = "dodge") + # Cannot use geom_bar() 
+  labs( x = "Gender", y= "Number of respondents", title = "The education levels of respondents") +
+  theme(plot.title = element_text(hjust = 0.5)) + # Adjust the title to the center
+  geom_text(position = position_dodge(width = .9), vjust = - 0.5, size = 3) + # Adjust the label to the center of each bar, vjust: adjust the height position of label  
+  lims(y = c(0,150)) +
+  facet_wrap(~Gender) +
+  theme(axis.ticks = element_blank(), axis.text.x = element_blank())
+
+```
+
+
+## Exercise 2
+
+Explain what you are visualizing here: Drawing a scatter plot illustrating the relationship between the DW-Nominate score of each member (dwnom1) and the number of the bills introduced in congress 110 (all_bills) according to years (elected)
+
+Put your figure here:
+
+```{r exercise2,echo=FALSE}
+data2 <- filter(cel, congress == 110)
+data2 <- data2 %>% 
+  mutate(
+    Gender = case_when(
+      female == 0 ~ "Male",
+      female == 1 ~ "Female"))
+ggplot(data2, aes(x= dwnom1, y = all_bills, colour = Gender)) +
+  geom_point() +
+  facet_wrap(~elected) +
+  labs(x ="DW-Nominate score", y = "Number of bills", title = "The DW-Nominate score and Number of bills introduced each year") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Exercise 3
+
+Explain what you are visualizing here: Drawing a line illustrating the relationship between the DW-Nominate score of each member (dwnom1) and the number of the bills introduced in congress 110 (all_bills) according to year the member was elected (elected)
+
+Put your figure here:
+
+```{r exercise3,echo=FALSE}
+
+data3 <- filter(cel, congress == 110)
+data3 <- data3 %>% 
+  mutate(
+    Gender = case_when(
+      female == 0 ~ "Male",
+      female == 1 ~ "Female"))
+ggplot(data3, aes(x= elected, y = all_bills, colour = Gender)) +
+  stat_summary(fun.y = mean, geom = "point") +
+  stat_summary(fun.y = mean, geom = "line", aes(group = 1)) +
+  
+  labs( x= "Elected Year", y = "Mean of bills", title = "The mean value of bills of the members in each elected year") +
+  theme_bw() + # theme_bw must be set before theme() to set title in center
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position='none') +
+  facet_wrap(~Gender, as.table = FALSE)  
+  
+```
+
+## Exercise 4
+
+Explain what you are visualizing here: Drawing a box plot illustrate the number of bills (all_law) that the member(female) introduced that became law in congress 110
+
+Put your figure here:
+
+```{r exercise4,echo=FALSE}
+
+data4 <- filter(cel, congress == 110)
+data4 <- data4 %>% 
+  mutate(
+    Gender = case_when(
+      female == 0 ~ "Male",
+      female == 1 ~ "Female"))
+data4 <- data4 %>% 
+  mutate(
+    Dem = case_when(
+      dem == 0 ~ "Republican",
+      dem == 1 ~ "Democrat"))
+
+ggplot(data4, aes(x= Dem, y = all_bills, fill = Dem)) +
+  geom_boxplot()  +
+  labs( x= "Political view", y = "The number of bills", title = "The number of bills introduced in congress 110") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  facet_wrap(~Gender, as.table = FALSE) +
+  theme(legend.position='none')
+```
