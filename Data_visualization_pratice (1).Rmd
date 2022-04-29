@@ -1,0 +1,338 @@
+---
+title: "Animations and Interactivity 1 "
+author: "Minh Tri"
+date: '2022-04-27'
+output:
+  html_document: 
+   code_folding: hide
+---
+
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+######DO NOT MODIFY. This will load required packages and data.
+
+library(tidyverse)
+library(gganimate)
+library(gifski)
+library(plotly)
+
+cces <- drop_na(read_csv(url("https://www.dropbox.com/s/ahmt12y39unicd2/cces_sample_coursera.csv?raw=1")))
+
+cel <- drop_na(read_csv(url("https://www.dropbox.com/s/4ebgnkdhhxo5rac/cel_volden_wiseman%20_coursera.csv?raw=1")))
+
+```
+
+## Exercise 1
+**Data: cces**  
+  
+Explain what you are visualizing here: A bar chart shows the educational levels of respondents towards their job in the cces file
+
+Put your figure here:
+
+```{r exercise1, echo=TRUE, message=FALSE, warning=FALSE}
+data1 <-cces
+data1 <- data1 %>% 
+  mutate(
+    Gender = case_when(
+      gender == 1 ~ "Male",
+      gender == 2 ~ "Female"))
+
+data1 <- data1 %>% 
+  mutate(
+    Educ = case_when(
+      educ == 1 ~ "No high school",
+      educ == 2 ~ "High school graduate",
+      educ == 3 ~ "Some college",
+      educ == 4 ~ "2-year",
+      educ == 5 ~ "4-year",
+      educ == 6 ~ "Post-grad"))
+data1$Educ = factor(data1$Educ, levels = c ("No high school", "High school graduate", "Some college", "2-year", "4-year", "Post-grad"))
+
+data1 <- data1 %>% 
+  mutate(
+    transCC18_308a = case_when(
+      CC18_308a == 1 ~ "Strongly approve",
+      CC18_308a == 2 ~ "Somewhat approve",
+      CC18_308a == 3 ~ "Somewhat disapprove",
+      CC18_308a == 4 ~ "Strongly disapprove"))
+data1$transCC18_308a = factor(data1$transCC18_308a, levels = c ("Strongly disapprove", "Somewhat disapprove", "Somewhat approve", "Strongly approve"))
+
+
+data1.1 <- data1 %>% count(Gender, Educ, transCC18_308a,  sort = TRUE)
+colnames(data1.1) <- c("Gender", "Education", "Opinion", "Count")
+```
+
+```{r message=FALSE, warning=FALSE, , echo=TRUE}
+data1.2 <- data1 %>% count(Gender, transCC18_308a,  sort = TRUE)
+colnames(data1.2) <- c("Gender", "Opinion", "Count")
+
+ggplot(data1.2, aes( y = Count, x = Gender, fill = Opinion, label = Count)) + 
+  stat_summary(geom = "bar", position = "dodge") + # Cannot use geom_bar() 
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents") +
+  theme(plot.title = element_text(hjust = 0.5)) + # Adjust the title to the center
+  geom_text(position = position_dodge(width = .9), vjust = - 0.5, size = 3)  # Adjust the label to the center of each bar, vjust: adjust the height position of label  
+ 
+
+a <- ggplot(data1.2, aes( y = Count, x = Gender, fill = Opinion)) + 
+  stat_summary(geom = "bar", position = "dodge") +  
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(a)
+```
+
+We can see that there are 4 levels of opinions: strongly disapprove, disapprove, approve, strongly approve.For further analysis, the following graph will cover the Educational levels of respondents in each type of opinions:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data1.1, aes( y = Count, x= Gender, fill = Opinion, label = Count)) + 
+  stat_summary(geom = "bar", position = "dodge") + # Cannot use geom_bar
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents") +
+  theme(plot.title = element_text(hjust = 0.5)) + # Adjust the title to the center
+  geom_text(position = position_dodge(width = .9), vjust = - 0.5, size = 3) + # Adjust the label to the center of each bar, vjust: adjust the height position of label  
+  facet_wrap(~Education) + ylim(0,80)  
+  
+ 
+a <- ggplot(data1.1, aes( y = Count, x= Gender, fill = Opinion)) + 
+  stat_summary(geom = "bar", position = "dodge") + # Cannot use geom_bar
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents") +
+  theme(plot.title = element_text(hjust = 0.5)) + # Adjust the title to the center
+  facet_wrap(~Education)
+ggplotly(a)
+
+```
+
+Next, I will illustrate the remaining types of bar chart which makes it easier to compare proportions: First chart shows the opinion of respondents on the scale of 1, second chart shows the number of respondents stack on one another. It's a little bit difficult to calculate and show percentage label for 1st chart and 2nd chart. So I use the interactive charts. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data1.1, aes( y = Count, x = Gender, fill = Opinion)) + 
+  stat_summary(geom = "bar", position="fill") +
+  labs( x = "Gender", y= "Proportion of respondents", title = "The opinion of respondents") +
+  facet_wrap(~Education) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(plot.title = element_text(hjust = 0.5))  
+  
+ggplot(data1.1, aes( y = Count, x = Gender, fill = Opinion)) + 
+  stat_summary(geom = "bar", position="stack") +
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents") +
+  facet_wrap(~Education) +
+  theme(plot.title = element_text(hjust = 0.5))  
+```
+
+For interactive plot: 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+b <-   ggplot(data1.1, aes( y = Count, x = Gender, fill = Opinion)) + 
+  stat_summary(geom = "bar", position="fill") +
+  labs( x = "Gender", y= "Proportion of respondents", title = "The opinion of respondents") +
+  facet_wrap(~Education) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme(plot.title = element_text(hjust = 0.5))   
+ggplotly(b)
+
+b1 <- ggplot(data1.1, aes( y = Count, x = Gender, fill = Opinion)) + 
+  stat_summary(geom = "bar", position="stack") +
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents") +
+  facet_wrap(~Education) +
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(b1)
+```
+
+Let try using animation graph
+
+Explain what you are visualizing here: A bar chart shows the number of respondents education in the cces file
+
+Put your figure here:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ggplot(data1.1, aes( y = Count, x= Gender, fill = Opinion, label = Count)) + 
+  stat_summary(geom = "bar", position = "dodge") +  
+  labs( x = "Gender", y= "Number of respondents", title = "The opinion of respondents", subtitle = 'Education: {closest_state}') +
+  theme(plot.title = element_text(hjust = 0.5)) +  
+  geom_text(position = position_dodge(width = .9), vjust = - 0.5, size = 4) +
+  theme(
+    plot.title =    element_text(size = (18), face = "bold" ),
+    plot.subtitle = element_text(size = (15)),
+    legend.title =  element_text(size = (15), face = "bold.italic", colour = "black"),
+    legend.text =   element_text(size = (14), face = "italic",      colour = "black"),
+    axis.title =    element_text(size = (15),                       colour = "black"),
+    axis.text =     element_text(size = (13),                       colour = "black" ) ) +  
+  transition_states(Education, transition_length = 0, state_length = 2) +
+  enter_fade() +  exit_fade()
+
+anim_save("The opinion of respondents.gif")   
+
+```
+   
+For interactive plot with animation:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+plot_ly(data1.1) %>%
+  add_bars(
+    x = ~Gender, xend = ~Gender, 
+    y = ~ Count, yend = ~0, 
+    frame = ~Education,
+    color = ~ Opinion  ) %>% 
+  animation_slider( currentvalue = list(prefix = "Education: ", font = list(color="red"))) %>%
+  animation_opts(1000, easing = "elastic", redraw = FALSE) 
+```
+   
+
+## Exercise 2
+**Data: cel**
+
+Explain what you are visualizing here: Drawing a scatter plot illustrating the relationship between the DW-Nominate score of each member (dwnom1) and the number of the bills introduced in congress 110 (all_bills) according to years (elected)
+
+Put your figure here:
+
+```{r exercise2, echo=TRUE}
+data2 <- filter(cel, congress == 110)
+data2 <- data2 %>% 
+  mutate(
+    Gender = case_when(
+      female == 0 ~ "Male",
+      female == 1 ~ "Female"))
+
+ggplot(data2, aes(x= dwnom1, y = all_bills, colour = Gender)) +
+  geom_point() +
+  facet_wrap(~elected) +
+  labs(x ="DW-Nominate score", y = "Number of bills", title = "The DW-Nominate score and Number of bills introduced each year") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+Let try using interactive plot:
+```{r echo=FALSE, warning=TRUE}
+c <- ggplot(data2, aes(x= dwnom1, y = all_bills, colour = Gender)) +
+  geom_point() +
+  facet_wrap(~elected) +
+  labs(x ="DW-Nominate score", y = "Number of bills", title = "The DW-Nominate score and Number of bills introduced each year") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(c)
+```
+For interactive and animation plot:
+```{r echo=TRUE, message=FALSE, warning=TRUE}
+c1 <- ggplot(data2, aes(x= dwnom1, y = all_bills, color = Gender)) +
+  geom_point(aes(frame = elected)) +
+  labs(x ="DW-Nominate score", y = "Number of bills", title = "The DW-Nominate score and Number of bills introduced each year") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(c1)
+
+
+```
+Problem arises when we plot the graph with Color for Different Genders. Similar problem is already indicated in many topics and solution cannot be found. (https://community.plotly.com/t/frame-showing-less-category-than-actual/8628). The Warning message shows that the frame shows less category than normal.   
+
+*Only female or male are showed* **(from year 1986)**.  
+
+However. if I alter the option aes(Color = Gender) by aes(ids/label=Gender, text1 = ...), the frame can show both Gender at the same time (ofcourse with no Color)
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+ c2 <- ggplot(data2, aes(x= dwnom1, y = all_bills)) +
+  geom_point(aes(frame = elected, ids = Gender, text1 = thomas_name, text2 = seniority)) +
+  labs(x ="DW-Nominate score", y = "Number of bills", title = "The DW-Nominate score and Number of bills introduced each year") +
+  theme(plot.title = element_text(hjust = 0.5))
+ggplotly(c2)
+```
+   
+   
+## Exercise 3
+
+Explain what you are visualizing here: Drawing a (interactive) line illustrating the number of the bills introduced in congress 110 (all_bills) according to year the member was elected (elected)
+
+Put your figure here:
+
+```{r exercise3, echo=TRUE, message=FALSE, warning=FALSE}
+
+data3 <- filter(cel, congress == 110)
+data3 <- data3 %>% 
+  mutate(
+    Gender = case_when(
+      female == 0 ~ "Male",
+      female == 1 ~ "Female"))
+
+ggplot(data3, aes(x= elected, y = all_bills, colour = Gender)) +
+  stat_summary(fun.y = mean, geom = "point") +
+  stat_summary(fun.y = mean, geom = "line", aes(group = 1)) +
+  labs( x= "Elected Year", y = "Mean of bills", title = "The mean value of bills of the members in each elected year") +
+  theme_bw() + # theme_bw must be set before theme() to set title in center
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position='none') +
+  facet_wrap(~Gender, as.table = FALSE)  
+  
+```
+
+Let check some values by filter the "Elected Year" 1990 - 1992 - 1994 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(pastecs)
+year1990 <- filter(data3, elected ==1990) 
+by(year1990$all_bills, year1990$Gender, stat.desc )
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+year1992 <- filter(data3, elected ==1992) 
+by(year1992$all_bills, year1992$Gender, stat.desc)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+year1994 <- filter(data3, elected ==1994) 
+by(year1994$all_bills, year1994$Gender, stat.desc)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+d <- ggplot(data3, aes(x= elected, y = all_bills, colour = Gender)) +
+  stat_summary(fun.y = mean, geom = "point") +
+  stat_summary(fun.y = mean, geom = "line", aes(group = 1)) +
+  labs( x= "Elected Year", y = "Mean of bills", title = "The mean value of bills of the members in each elected year") +
+  theme_bw() + # theme_bw must be set before theme() to set title in center
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position='none') +
+  facet_wrap(~Gender, as.table = FALSE)  
+
+ggplotly(d)
+```
+Drawing box plot to identify median - min - max of these value:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+d <- ggplot(data3, aes(x= elected, y = all_bills, colour = Gender)) +
+  geom_boxplot()+
+  labs( x= "Elected Year", y = "Mean of bills", title = "The mean value of bills of the members in each elected year") +
+  theme_bw() + # theme_bw must be set before theme() to set title in center
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position='none') +
+  facet_wrap(~Gender, as.table = FALSE)  
+
+ggplotly(d)
+```
+A few comments on interactive box plot and line graph: 
+ 1. No value on mean of bills is shown on the interactive graph.  
+ 2. A box plot only shows the plot for a few years (not all of the data)
+
+As we can see the value of mean(Female) of 1992 and 1994 are 26.625 and 27 but it can't be shown on the interactive line graph. In my opinion, these values are supposed to be shown.
+
+
+## Exercise 4
+
+Explain what you are visualizing here: Drawing a box plot illustrate the number of bills (all_law) that the member(female) introduced that became law in congress 110
+
+Put your figure here:
+
+```{r exercise4, echo=TRUE}
+
+data4 <- filter(cel, congress == 110)
+data4 <- data4 %>% 
+  mutate(
+    Gender = case_when(
+      female == 0 ~ "Male",
+      female == 1 ~ "Female"))
+data4 <- data4 %>% 
+  mutate(
+    Dem = case_when(
+      dem == 0 ~ "Republican",
+      dem == 1 ~ "Democrat"))
+
+g <- ggplot(data4, aes(x= Dem, y = all_bills, fill = Dem)) +
+  geom_boxplot()  +
+  labs( x= "Political view", y = "The number of bills", title = "The number of bills introduced in congress 110") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(legend.position='none')+
+  facet_wrap(~Gender, as.table = FALSE)
+g 
+
+ggplotly(g)
+```
+
+
